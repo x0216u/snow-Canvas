@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title></title>
+		<link href="css/font-awesome.min.css" rel="stylesheet" type="text/css" media="all">
+<link href="css/style.css" rel="stylesheet" type="text/css" media="all" />
+		<script type='text/javascript' src="jquery.min.js"></script>
+	</head>
+	<body style="height:1000px;">
+		<div id="container" style="height:100%;width:100%" >
+			<canvas  id="canvas">你的浏览器不支持</canvas>
+		</div>
+			<div  id="loginDiv"style="position: absolute; width: 700px;z-index: 4;top:200px;left: 300px;">
+			<div class="form-w3-agile">
+				<h2 class="sub-agileits-w3layouts">登录</h2>
+				<form action="#" method="post">
+					<input type="email" name="Eamil" placeholder="用户" required="" />
+					<input type="password" name="Password" placeholder="密码" required="" />
+					<a href="#" class="forgot-w3layouts">忘记密码 ?</a>
+					<div class="submit-w3l">
+						<input type="submit" value="登录">
+					</div>
+					<p class="p-bottom-w3ls">
+						<a href="signup.html">点击注册</a>如果你没有一个帐户。 .
+					</p>
+				</form>
+			</div>
+		</div>
+		<script type="text/javascript">
+			$(function(){
+				var width=document.body.clientWidth;
+				document.body.style.width=width+"px";
+				document.getElementById("loginDiv").style.width=width/3+"px";
+				document.getElementById("loginDiv").style.left=width/3+"px";
+				backGround.init();
+			})
+	var backGround = {
+	SNOWDATA: {COUNT : 800, DELTA : 1},
+	COLOR : 'hsl(%h, 50%, %l%)', //色相(H)、饱和度(S)、明度(L
+	HUE : 180,//初始色相
+	DELTA_HUE : 0.1,//色相变化变量
+	
+	init : function(){
+		this.setParameters();
+		this.reconstructMethod();
+		this.createSnow(this.SNOWDATA.COUNT, true);
+		this.render();
+	},
+	setParameters : function(){
+		this.width = $('#container').width();
+		this.height = $('#container').height();
+		this.center = {x : this.width / 2, y : this.height / 2};//中心位置
+	     this.canvas =document.getElementById("canvas");
+		 $('canvas').attr({width : this.width, height : this.height});
+		this.context = this.canvas.getContext('2d');
+		
+		this.radius = Math.sqrt(this.center.x * this.center.x + this.center.y * this.center.y);//画布半径
+		this.hue = this.HUE;
+		this.snows = [];
+	},
+	reconstructMethod : function(){
+		this.render = this.render.bind(this);
+	},
+	createSnow : function(count, toRandomize){
+		for(var i = 0; i < count; i++){
+			this.snows.push(new SNOW(this.width, this.height, this.center, toRandomize));
+		}
+	},
+	render : function(){
+		requestAnimationFrame(this.render);//按帧数渲染图形
+		try{
+			//创建圆形渐变 由 (x,y,0)->(x,y,radius)
+		var gradient = this.context.createRadialGradient(this.center.x, this.center.y, 0, this.center.x, this.center.y, this.radius),
+			backgroundColor = this.COLOR.replace('%h', this.hue);
+		//按范围替换颜色
+		gradient.addColorStop(0, backgroundColor.replace('%l', 30));
+		gradient.addColorStop(0.2, backgroundColor.replace('%l', 20));
+		gradient.addColorStop(1, backgroundColor.replace('%l', 5));
+		
+		this.context.fillStyle = gradient;
+		this.context.fillRect(0, 0, this.width, this.height);
+		
+		for(var i = this.snows.length - 1; i >= 0; i--){
+			if(!this.snows[i].render(this.context)){
+				this.snows.splice(i, 1);//返回false  删除雪花  重置画布
+			}
+		}
+		this.hue += this.DELTA_HUE;
+		
+		}
+		catch(e){
+			this.hue=this.HUE;
+		}
+		this.createSnow(this.SNOWDATA.DELTA, false);
+	}
+};
+var SNOW = function(width, height, center, havaCreated){
+	this.width = width;
+	this.height = height;
+	this.center = center;
+	this.init(havaCreated);
+};
+SNOW.prototype = {
+	RADIUS : 20,//雪花半径
+	DISTANCE : 4,  //雪花内部线条 间距
+	COLOR : '#FFFAFA',//雪花颜色
+	SCALE : {INIT : 0.04, DELTA : 0.01},//雪花比例 递增
+	DELTA_ROTATE : {MIN : -Math.PI / 180 *0.5, MAX : Math.PI / 180 *0.5},//旋转角度
+	MOVE : {MIN : -1, MAX : 1}, //位移速率
+	LINE_WIDTH : 2, //雪花线宽
+
+	init : function(havaCreated){
+		this.setParameters(havaCreated);
+		this.createSnow();
+	},
+	setParameters : function(havaCreated){
+		this.topRadius = 2;//雪花顶部 小圆 半径
+		if(!this.canvas){
+			this.radius = this.RADIUS + this.LINE_WIDTH+this.topRadius+2;//获取半径
+			this.length = this.radius * 2;
+			this.canvas = $('<canvas />').attr({width : this.length, height : this.length}).get(0);
+			this.context = this.canvas.getContext('2d');
+		}
+		
+		
+		var theta = Math.PI * 2 * Math.random(); //随机角度值
+		
+		this.x = this.center.x + 20 * Math.cos(theta);//随机x位置
+		this.y = this.center.y + 20* Math.sin(theta);//随机y位置  使x,Y 都随机
+		this.vx = this.getRandomValue(this.MOVE);//x随机扩散位置及速率
+		this.vy = this.getRandomValue(this.MOVE);//y随机扩散位置及速率
+		
+		this.deltaRotate = this.getRandomValue(this.DELTA_ROTATE);//旋转速率
+		this.scale = this.SCALE.INIT;//比例 0.04
+		this.deltaScale = 1 + Math.random()*this.SCALE.DELTA;       //1->1.005
+		this.rotate = 0;
+		
+		if(havaCreated){
+			//经过几百次迭代 使初始雪花 获取不同位置 大小 速率
+			for(var i = 0, count = 700; i < count; i++){
+				this.x += this.vx;
+		 		this.y += this.vy;
+		 		this.scale *= this.deltaScale;//大小比例  0.04=>0.0404
+		 		this.rotate += this.deltaRotate;//旋转角度比率 -0.5->0.5
+			}
+		}
+	},
+	getRandomValue : function(range){
+		return range.MIN + (range.MAX - range.MIN) * Math.random();
+	},
+	createSnow : function(){
+		this.context.clearRect(0, 0, this.length, this.length);
+		
+		this.context.save();
+		this.context.beginPath();
+		this.context.translate(this.radius, this.radius);
+		this.context.strokeStyle = this.COLOR;
+		this.context.lineWidth = this.LINE_WIDTH;
+		this.context.shadowColor = this.COLOR;
+		
+		//画雪花
+		var angle60 = Math.PI / 180 * 60,
+			sin60 = Math.sin(angle60),
+			cos60 = Math.cos(angle60),
+			threshold = Math.random() * this.RADIUS / this.DISTANCE , //0->5 雪花内部一个分支线条数量
+			rate = 0.5 + Math.random() * 0.4,
+			offsetY = this.DISTANCE * Math.random() * 2,//雪花外围线条 间距 不连接在一起
+			offsetCount = this.RADIUS / this.DISTANCE;   // 5
+		
+		for(var i = 0; i < 6; i++){
+			this.context.save();
+			this.context.rotate(angle60 * i);//旋转角度 实现复制雪花
+			//画出雪花的一部分
+			
+			//画出雪花内部线条 半径: 0->threshold
+			for(var j = 0; j <= threshold; j++){
+				var y = this.DISTANCE * j;//
+				this.context.moveTo(0, y);
+				this.context.lineTo(y * sin60, y * cos60);
+			}
+			//画出雪花外围 分散线条 半径: threshold->radius/DISTANCE
+			for(var j = threshold; j < offsetCount; j++){
+				var y = -this.DISTANCE * j, 
+					x = j * (offsetCount - j + 1) * rate;// rate 要求所画的线长度不得低于 0.5
+				//因为要有间距 所以要减去offsetY 使复制的时候线条不连接在一起
+				this.context.moveTo(x, y - offsetY);
+				this.context.lineTo(0, y);
+				this.context.lineTo(-x, y - offsetY);
+			}
+			this.context.moveTo(0, 0);
+			//画出雪花主线
+			this.context.lineTo(0, this.RADIUS);
+			//线条尾部 加 小圆
+			this.context.arc(0, this.RADIUS + this.topRadius, this.topRadius, 0, Math.PI * 2, false);
+			this.context.restore();
+		}
+		this.context.stroke();
+		this.context.restore();
+	},
+	render : function(context){
+		context.save();
+		
+		if(this.scale > 0.5){ //大小大于0.5
+			//透明度 无限接近于0
+			context.globalAlpha = Math.max(0, (1 - this.scale) / 0.5);
+			//大小比例大于1 或者没界 
+			if(this.scale > 1 || this.x < -this.radius || this.x > this.width  || this.y < -this.radius || this.y > this.height ){
+				context.restore(); //重置
+				return false;
+			}
+		}
+		context.translate(this.x, this.y); //每次移动的距离
+		context.rotate(this.rotate);//旋转的角度
+		context.scale(this.scale, this.scale);//x,y比例
+		context.drawImage(this.canvas, this.radius, this.radius); //画画布
+		context.restore();
+		
+ 		this.x += this.vx;
+ 		this.y += this.vy;
+ 		this.scale *= this.deltaScale;
+ 		this.rotate += this.deltaRotate;
+ 		return true;
+	}
+};
+
+
+		</script>
+	</body>
+</html>
